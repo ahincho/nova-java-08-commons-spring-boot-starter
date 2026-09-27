@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.2](https://github.com/ahincho/nova-java-08-commons-spring-boot-starter/compare/v1.0.1...v1.0.2) (2026-09-27)
+
+
+### Documentation
+
+* add a README and adopt EPL-2.0 ([dc00322](https://github.com/ahincho/nova-java-08-commons-spring-boot-starter/commit/dc00322af548dc32f5e744493ec1f7e46880eeae))
+
 ## [1.0.1](https://github.com/ahincho/nova-java-commons-spring-boot-starter/compare/v1.0.0...v1.0.1) (2026-07-13)
 
 
