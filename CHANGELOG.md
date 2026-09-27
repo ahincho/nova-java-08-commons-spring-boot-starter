@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.3](https://github.com/ahincho/nova-java-08-commons-spring-boot-starter/compare/v1.0.2...v1.0.3) (2026-09-27)
+
+
+### Bug Fixes
+
+* **deps:** move to Spring Boot 4.0.8 and patch what OWASP flags ([71ee36a](https://github.com/ahincho/nova-java-08-commons-spring-boot-starter/commit/71ee36a2a7eb49d2b72b120fdb6ac80ccf8ff005))
+* **deps:** move to Spring Boot 4.0.8 and patch what OWASP flags ([56833d2](https://github.com/ahincho/nova-java-08-commons-spring-boot-starter/commit/56833d2a97d681607ac65a86353fc4ccc6579abb))
+
 ## [1.0.2](https://github.com/ahincho/nova-java-08-commons-spring-boot-starter/compare/v1.0.1...v1.0.2) (2026-09-27)
 
 
