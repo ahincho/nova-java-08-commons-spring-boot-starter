@@ -36,7 +36,7 @@ subprojects {
         val readToken = System.getenv("NOVA_PACKAGES_READ_TOKEN") ?: System.getenv("GITHUB_TOKEN")
         maven {
             name = "NovaMaskUtils"
-            url = uri("https://maven.pkg.github.com/ahincho/nova-java-mask-utils")
+            url = uri("https://maven.pkg.github.com/ahincho/nova-java-04-mask-utils")
             credentials {
                 username = System.getenv("GITHUB_ACTOR")
                 password = readToken
@@ -44,7 +44,7 @@ subprojects {
         }
         maven {
             name = "NovaApiStandard"
-            url = uri("https://maven.pkg.github.com/ahincho/nova-java-api-standard")
+            url = uri("https://maven.pkg.github.com/ahincho/nova-java-01-api-standard")
             credentials {
                 username = System.getenv("GITHUB_ACTOR")
                 password = readToken

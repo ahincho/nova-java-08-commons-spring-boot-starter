@@ -8,8 +8,8 @@ Spring; these modules are the wiring.
 
 | Module | Auto-configures | Wraps |
 |---|---|---|
-| `nova-api-standard-starter` | `ApiResponseInterceptor`, `GlobalExceptionHandler` | [nova-api-standard](https://github.com/ahincho/nova-java-api-standard) |
-| `nova-mask-starter` | `MaskAutoConfiguration`, plus an Actuator health indicator and info contributor | [nova-mask-utils](https://github.com/ahincho/nova-java-mask-utils) |
+| `nova-api-standard-starter` | `ApiResponseInterceptor`, `GlobalExceptionHandler` | [nova-api-standard](https://github.com/ahincho/nova-java-01-api-standard) |
+| `nova-mask-starter` | `MaskAutoConfiguration`, plus an Actuator health indicator and info contributor | [nova-mask-utils](https://github.com/ahincho/nova-java-04-mask-utils) |
 
 Both register through `AutoConfiguration.imports`, so adding the
 dependency is all the wiring an application does.
@@ -22,7 +22,7 @@ authenticated with a token that has `read:packages`.
 ```kotlin
 repositories {
     maven {
-        url = uri("https://maven.pkg.github.com/ahincho/nova-java-commons-spring-boot-starter")
+        url = uri("https://maven.pkg.github.com/ahincho/nova-java-08-commons-spring-boot-starter")
         credentials {
             username = providers.gradleProperty("gpr.user").orNull ?: System.getenv("GITHUB_ACTOR")
             password = providers.gradleProperty("gpr.key").orNull ?: System.getenv("GITHUB_TOKEN")
@@ -37,7 +37,7 @@ dependencies {
 ```
 
 Most applications should not depend on these directly — take
-[nova-java-spring-boot-starter](https://github.com/ahincho/nova-java-spring-boot-starter),
+[nova-java-spring-boot-starter](https://github.com/ahincho/nova-java-12-spring-boot-starter),
 the meta-starter that bundles them.
 
 ## What you get
