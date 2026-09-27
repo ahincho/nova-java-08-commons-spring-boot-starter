@@ -8,8 +8,8 @@ Spring; these modules are the wiring.
 
 | Module | Auto-configures | Wraps |
 |---|---|---|
-| `nova-api-standard-starter` | `ApiResponseInterceptor`, `GlobalExceptionHandler` | [nova-api-standard](https://github.com/ahincho/nova-java-01-api-standard) |
-| `nova-mask-starter` | `MaskAutoConfiguration`, plus an Actuator health indicator and info contributor | [nova-mask-utils](https://github.com/ahincho/nova-java-04-mask-utils) |
+| `nova-api-standard-spring-boot-starter` | `ApiResponseInterceptor`, `GlobalExceptionHandler` | [nova-api-standard](https://github.com/ahincho/nova-java-01-api-standard) |
+| `nova-mask-spring-boot-starter` | `MaskAutoConfiguration`, plus an Actuator health indicator and info contributor | [nova-mask-utils](https://github.com/ahincho/nova-java-04-mask-utils) |
 
 Both register through `AutoConfiguration.imports`, so adding the
 dependency is all the wiring an application does.
@@ -31,8 +31,8 @@ repositories {
 }
 
 dependencies {
-    implementation("pe.edu.nova.java.starters:nova-api-standard-starter:0.1.0-SNAPSHOT")
-    implementation("pe.edu.nova.java.starters:nova-mask-starter:0.1.0-SNAPSHOT")
+    implementation("pe.edu.nova.java.starters:nova-api-standard-spring-boot-starter:2.0.0")
+    implementation("pe.edu.nova.java.starters:nova-mask-spring-boot-starter:2.0.0")
 }
 ```
 

@@ -2,8 +2,8 @@
   "last-release-sha": "933b0e360d0c138a3db3c15a9c523e6ba7474779",
   "packages": {
     ".": {
-      "component": "nova-commons-starter",
-      "package-name": "pe.edu.nova.java.starters:nova-commons-starter",
+      "component": "nova-commons-spring-boot-starter",
+      "package-name": "pe.edu.nova.java.starters:nova-commons-spring-boot-starter",
       "release-type": "java",
       "include-component-in-tag": false,
       "skip-snapshot": true,

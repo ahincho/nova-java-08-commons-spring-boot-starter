@@ -1,5 +1,5 @@
 {
   ".": "1.0.2",
-  "nova-api-standard-starter": "1.0.0",
-  "nova-mask-starter": "1.0.0"
+  "nova-api-standard-spring-boot-starter": "1.0.0",
+  "nova-mask-spring-boot-starter": "1.0.0"
 }

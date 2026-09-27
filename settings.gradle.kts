@@ -1,3 +1,3 @@
-rootProject.name = "nova-commons-starter"
-include("nova-mask-starter")
-include("nova-api-standard-starter")
+rootProject.name = "nova-commons-spring-boot-starter"
+include("nova-mask-spring-boot-starter")
+include("nova-api-standard-spring-boot-starter")
