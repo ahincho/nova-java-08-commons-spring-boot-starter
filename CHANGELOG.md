@@ -1,5 +1,22 @@
 # Changelog
 
+## [2.0.0](https://github.com/ahincho/nova-java-08-commons-spring-boot-starter/compare/v1.0.2...v2.0.0) (2026-09-27)
+
+
+### ⚠ BREAKING CHANGES
+
+* pe.edu.nova.java.starters:nova-api-standard-starter becomes nova-api-standard-spring-boot-starter and nova-mask-starter becomes nova-mask-spring-boot-starter; consumers migrate with ops/rename-artifacts.py --phase 2 from nova-shared-01-docs.
+
+### Features
+
+* publish the starters with spring-boot in their artifactId ([cb9c4ae](https://github.com/ahincho/nova-java-08-commons-spring-boot-starter/commit/cb9c4ae7bd209866b1a6fbc75731c7cbfcc0c429))
+
+
+### Bug Fixes
+
+* **deps:** move to Spring Boot 4.0.8 and patch what OWASP flags ([71ee36a](https://github.com/ahincho/nova-java-08-commons-spring-boot-starter/commit/71ee36a2a7eb49d2b72b120fdb6ac80ccf8ff005))
+* **deps:** move to Spring Boot 4.0.8 and patch what OWASP flags ([56833d2](https://github.com/ahincho/nova-java-08-commons-spring-boot-starter/commit/56833d2a97d681607ac65a86353fc4ccc6579abb))
+
 ## [1.0.2](https://github.com/ahincho/nova-java-08-commons-spring-boot-starter/compare/v1.0.1...v1.0.2) (2026-09-27)
 
 
