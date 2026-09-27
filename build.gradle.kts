@@ -21,6 +21,32 @@ subprojects {
     apply(plugin = "checkstyle")
     apply(plugin = "org.owasp.dependencycheck")
 
+    // Versiones parcheadas de dependencias que el OWASP gate marca con CVSS >= 7.
+    // Spring Boot llega solo como compileOnly y la resolución no se publica, así que
+    // esto cambia lo que compila y analiza el starter, no lo que recibe el consumidor.
+    // Verificadas contra la GitHub Advisory Database el 2026-09-27.
+    configurations.all {
+        resolutionStrategy.eachDependency {
+            if (requested.group == "org.apache.tomcat.embed") {
+                useVersion("11.0.26")
+                because("CVE-2026-68525, CVE-2026-65905, CVE-2026-65182 require Tomcat 11.0.25+; Spring Boot 4.0.8 pins 11.0.24")
+            }
+            // Las tres siguientes llegan por las dependencias de la herramienta checkstyle.
+            if (requested.group == "org.apache.httpcomponents.core5" && requested.name.startsWith("httpcore5")) {
+                useVersion("5.4.3")
+                because("CVE-2026-54399 requires httpcore5 5.4.3+")
+            }
+            if (requested.group == "commons-beanutils" && requested.name == "commons-beanutils") {
+                useVersion("1.11.0")
+                because("CVE-2025-48734 requires commons-beanutils 1.11.0+")
+            }
+            if (requested.group == "org.codehaus.plexus" && requested.name == "plexus-utils") {
+                useVersion("3.6.1")
+                because("CVE-2025-67030 requires plexus-utils 3.6.1+")
+            }
+        }
+    }
+
     configure<JavaPluginExtension> {
         toolchain {
             languageVersion.set(JavaLanguageVersion.of(25))

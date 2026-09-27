@@ -4,11 +4,11 @@ plugins {
     id("signing")
 }
 
-val springBootVersion = "4.0.5"
+val springBootVersion = "4.0.8"
 
 dependencies {
     // api-standard library (from Maven Local)
-    api("pe.edu.nova.java.libs:nova-api-standard:1.0.0")
+    api("pe.edu.nova.java.libs:nova-api-standard:1.0.2")
 
     // Spring Boot auto-configuration
     compileOnly("org.springframework.boot:spring-boot-autoconfigure:$springBootVersion")
