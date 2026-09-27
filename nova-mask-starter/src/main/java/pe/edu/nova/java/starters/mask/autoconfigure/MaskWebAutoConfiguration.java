@@ -16,7 +16,7 @@ import pe.edu.nova.java.starters.mask.web.MaskResponseBodyAdvice;
  * automático de campos {@code @Masked} vía Jackson.
  * </p>
  *
- * @author Galaxy Training
+ * @author Nova Platform
  */
 @AutoConfiguration(after = MaskJacksonAutoConfiguration.class)
 @ConditionalOnProperty(

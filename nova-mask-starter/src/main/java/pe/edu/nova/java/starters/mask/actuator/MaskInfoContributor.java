@@ -21,7 +21,7 @@ import pe.edu.nova.java.libs.mask.utils.strategy.StrategyRegistry;
  * disponibles y la cantidad de estrategias registradas.
  * </p>
  *
- * @author Galaxy Training
+ * @author Nova Platform
  */
 public class MaskInfoContributor implements InfoContributor {
 

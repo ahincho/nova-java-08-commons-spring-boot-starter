@@ -11,7 +11,7 @@ import pe.edu.nova.java.libs.mask.utils.CountryCode;
  * {@code application.properties} o {@code application.yml}.
  * </p>
  *
- * @author Galaxy Training
+ * @author Nova Platform
  */
 @ConfigurationProperties(prefix = "nova.mask")
 public class MaskProperties {

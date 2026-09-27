@@ -32,7 +32,7 @@ import tools.jackson.databind.ser.ValueSerializerModifier;
  * {@code nova.mask.enabled=false}.
  * </p>
  *
- * @author Galaxy Training
+ * @author Nova Platform
  */
 public class MaskedBeanSerializerModifier extends ValueSerializerModifier {
 

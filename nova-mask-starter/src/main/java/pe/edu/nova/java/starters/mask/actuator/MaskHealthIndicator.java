@@ -14,7 +14,7 @@ import pe.edu.nova.java.libs.mask.utils.strategy.StrategyRegistry;
  * una estrategia registrada, y {@code DOWN} en caso contrario.
  * </p>
  *
- * @author Galaxy Training
+ * @author Nova Platform
  */
 public class MaskHealthIndicator implements HealthIndicator {
 

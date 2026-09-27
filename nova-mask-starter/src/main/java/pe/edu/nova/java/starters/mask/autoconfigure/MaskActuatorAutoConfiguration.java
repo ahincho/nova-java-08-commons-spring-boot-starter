@@ -18,7 +18,7 @@ import pe.edu.nova.java.libs.mask.utils.strategy.StrategyRegistry;
  * solo cuando Actuator está en el classpath.
  * </p>
  *
- * @author Galaxy Training
+ * @author Nova Platform
  */
 @AutoConfiguration(after = MaskAutoConfiguration.class)
 @ConditionalOnProperty(

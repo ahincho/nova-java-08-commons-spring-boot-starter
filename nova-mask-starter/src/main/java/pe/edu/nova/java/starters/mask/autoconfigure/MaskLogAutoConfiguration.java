@@ -17,7 +17,7 @@ import pe.edu.nova.java.libs.mask.utils.strategy.StrategyRegistry;
  * y enmascara datos sensibles detectados automáticamente.
  * </p>
  *
- * @author Galaxy Training
+ * @author Nova Platform
  */
 @AutoConfiguration(after = MaskAutoConfiguration.class)
 @ConditionalOnProperty(

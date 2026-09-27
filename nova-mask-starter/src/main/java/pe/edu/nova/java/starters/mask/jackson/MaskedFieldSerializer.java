@@ -20,7 +20,7 @@ import tools.jackson.databind.ser.std.StdSerializer;
  * Si el valor es {@code null} o vacío, se escribe sin enmascarar.
  * </p>
  *
- * @author Galaxy Training
+ * @author Nova Platform
  */
 public class MaskedFieldSerializer extends StdSerializer<Object> {
 

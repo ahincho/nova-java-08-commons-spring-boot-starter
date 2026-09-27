@@ -16,7 +16,7 @@ import tools.jackson.databind.module.SimpleModule;
  * Auto-configuración de la integración con Jackson 3 para enmascaramiento
  * de campos {@code @Masked} durante la serialización JSON.
  *
- * @author Galaxy Training
+ * @author Nova Platform
  */
 @AutoConfiguration(after = MaskAutoConfiguration.class)
 @ConditionalOnProperty(

@@ -24,7 +24,7 @@ import pe.edu.nova.java.libs.mask.utils.strategy.StrategyRegistry;
  * {@link MaskStrategyBean} para registrarlos en el registry.
  * </p>
  *
- * @author Galaxy Training
+ * @author Nova Platform
  */
 @AutoConfiguration
 @EnableConfigurationProperties(MaskProperties.class)

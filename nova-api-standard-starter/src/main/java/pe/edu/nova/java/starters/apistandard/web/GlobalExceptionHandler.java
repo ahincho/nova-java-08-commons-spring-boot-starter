@@ -14,7 +14,7 @@ import pe.edu.nova.java.libs.api.standard.response.ApiResponse;
  * Manejador global de excepciones que convierte errores en respuestas
  * estándar {@link ApiResponse}.
  *
- * @author Galaxy Training
+ * @author Nova Platform
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -57,7 +57,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleGenericException(Exception ex) {
-        logger.error("[Galaxy Training] Error interno no manejado", ex);
+        logger.error("[Nova Platform] Error interno no manejado", ex);
         ApiResponse<Void> response = ApiResponse.error(500, "Error interno del servidor");
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }

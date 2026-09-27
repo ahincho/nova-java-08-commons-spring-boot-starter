@@ -15,7 +15,7 @@ import pe.edu.nova.java.starters.apistandard.web.GlobalExceptionHandler;
  * en {@code ApiResponse} y un manejador global de excepciones.
  * </p>
  *
- * @author Galaxy Training
+ * @author Nova Platform
  */
 @AutoConfiguration
 @ConditionalOnProperty(

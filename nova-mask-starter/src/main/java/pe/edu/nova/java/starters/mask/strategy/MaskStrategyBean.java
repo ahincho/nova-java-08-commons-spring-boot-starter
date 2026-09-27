@@ -25,7 +25,7 @@ import pe.edu.nova.java.libs.mask.utils.MaskType;
  * }
  * }</pre>
  *
- * @author Galaxy Training
+ * @author Nova Platform
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)

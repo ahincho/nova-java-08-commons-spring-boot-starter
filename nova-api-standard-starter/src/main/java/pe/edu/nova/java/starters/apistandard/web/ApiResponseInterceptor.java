@@ -20,7 +20,7 @@ import pe.edu.nova.java.libs.api.standard.response.ApiResponse;
  * strings de forma diferente con StringHttpMessageConverter).
  * </p>
  *
- * @author Galaxy Training
+ * @author Nova Platform
  */
 @RestControllerAdvice
 public class ApiResponseInterceptor implements ResponseBodyAdvice<Object> {

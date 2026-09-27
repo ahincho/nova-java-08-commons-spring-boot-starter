@@ -17,7 +17,7 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
  * de Jackson. Este advice actúa como punto de extensión y verificación.
  * </p>
  *
- * @author Galaxy Training
+ * @author Nova Platform
  */
 @ControllerAdvice
 public class MaskResponseBodyAdvice implements ResponseBodyAdvice<Object> {

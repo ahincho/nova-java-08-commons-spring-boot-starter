@@ -19,7 +19,7 @@ import pe.edu.nova.java.libs.mask.utils.strategy.StrategyRegistry;
  * Si el enmascaramiento falla, retorna el mensaje original sin propagar el error.
  * </p>
  *
- * @author Galaxy Training
+ * @author Nova Platform
  */
 public class MaskingLogbackLayout extends PatternLayout {
 
