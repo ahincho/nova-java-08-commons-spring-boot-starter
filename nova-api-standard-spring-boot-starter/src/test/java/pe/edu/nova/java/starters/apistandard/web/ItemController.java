@@ -193,6 +193,17 @@ class ItemController {
     }
 
     /**
+     * Bloquea un ítem: falla con una excepción que maneja el propio servicio.
+     *
+     * @param id el ítem
+     * @return nunca retorna
+     */
+    @PostMapping("/{id}/locks")
+    public Item lock(@PathVariable("id") long id) {
+        throw new ItemExceptionHandler.ItemLockedException("inventario");
+    }
+
+    /**
      * Descarga el reporte de un ítem como {@code byte[]}.
      *
      * @param id el ítem
