@@ -1,5 +1,6 @@
 package pe.edu.nova.java.starters.apistandard.web;
 
+import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -48,5 +49,15 @@ class EnvelopeStatusTest {
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.status").value(200))
                 .andExpect(jsonPath("$.data[0].name").value("Mesa"));
+    }
+
+    @Test
+    void anOkWithoutBodySaysOkAndNotNoContent() throws Exception {
+        mvc.perform(post("/items/1/confirmations"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.status").value(200))
+                .andExpect(jsonPath("$.data").value(nullValue()))
+                .andExpect(jsonPath("$.errors.length()").value(0));
     }
 }

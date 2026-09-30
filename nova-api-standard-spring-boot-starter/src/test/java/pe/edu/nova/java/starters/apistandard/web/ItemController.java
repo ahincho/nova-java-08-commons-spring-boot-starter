@@ -105,6 +105,17 @@ class ItemController {
     }
 
     /**
+     * Confirma un ítem: contesta 200 sin cuerpo, con {@code ResponseEntity.ok().build()}.
+     *
+     * @param id el ítem
+     * @return 200 sin cuerpo
+     */
+    @PostMapping("/{id}/confirmations")
+    public ResponseEntity<Void> confirm(@PathVariable("id") long id) {
+        return ResponseEntity.ok().build();
+    }
+
+    /**
      * Reemplaza un ítem: contesta 409 con un cuerpo propio del controlador.
      *
      * @param id el ítem
