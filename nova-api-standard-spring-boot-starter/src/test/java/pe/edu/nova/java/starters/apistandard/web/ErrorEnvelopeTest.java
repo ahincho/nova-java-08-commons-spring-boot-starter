@@ -29,7 +29,7 @@ class ErrorEnvelopeTest {
                 .andExpect(jsonPath("$.status").value(404))
                 .andExpect(jsonPath("$.data").value(nullValue()))
                 .andExpect(jsonPath("$.errors.length()").value(1))
-                .andExpect(jsonPath("$.errors[0].code").value("ERROR"))
+                .andExpect(jsonPath("$.errors[0].code").value("NOT_FOUND"))
                 .andExpect(jsonPath("$.errors[0].message").value("Not Found"));
     }
 
@@ -39,7 +39,7 @@ class ErrorEnvelopeTest {
                 .andExpect(status().isServiceUnavailable())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.status").value(503))
-                .andExpect(jsonPath("$.errors[0].code").value("ERROR"))
+                .andExpect(jsonPath("$.errors[0].code").value("SERVICE_UNAVAILABLE"))
                 .andExpect(jsonPath("$.errors[0].message").value("Error interno del servidor"));
     }
 
@@ -50,7 +50,7 @@ class ErrorEnvelopeTest {
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.status").value(409))
                 .andExpect(jsonPath("$.data.reason").value("El ítem está en un pedido abierto"))
-                .andExpect(jsonPath("$.errors[0].code").value("ERROR"));
+                .andExpect(jsonPath("$.errors[0].code").value("CONFLICT"));
     }
 
     @Test

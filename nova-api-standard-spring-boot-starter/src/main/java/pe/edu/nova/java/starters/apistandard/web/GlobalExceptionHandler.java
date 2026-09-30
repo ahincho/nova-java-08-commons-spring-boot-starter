@@ -45,6 +45,13 @@ import pe.edu.nova.java.libs.api.standard.response.ApiResponse;
  * causa. Un 4xx se registra en {@code warn}, sin stack trace, porque es el
  * cliente el que mandó algo que no corresponde.
  * </p>
+ * <p>
+ * Cada error lleva el código de su status, del catálogo de la plataforma:
+ * {@code NOT_FOUND} para un 404, {@code METHOD_NOT_ALLOWED} para un 405,
+ * {@code INTERNAL_SERVER_ERROR} para un 500, y así. Un 4xx que el catálogo no
+ * nombra lleva {@code REQUEST_ERROR}. Un error de validación lleva
+ * {@code VALIDATION_ERROR}, uno por campo.
+ * </p>
  *
  * @author Nova Platform
  */
@@ -74,7 +81,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<ApiResponse<Void>> handleNotFound(NoResourceFoundException ex) {
-        ApiResponse<Void> response = ApiResponse.error(404, "Recurso no encontrado: " + ex.getResourcePath());
+        ApiResponse<Void> response = envelope(404, "Recurso no encontrado: " + ex.getResourcePath());
         return clientError(HttpStatus.NOT_FOUND, HttpHeaders.EMPTY, ex, response);
     }
 
@@ -86,7 +93,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiResponse<Void>> handleBadRequest(IllegalArgumentException ex) {
-        ApiResponse<Void> response = ApiResponse.error(400, ex.getMessage());
+        ApiResponse<Void> response = envelope(400, ex.getMessage());
         return clientError(HttpStatus.BAD_REQUEST, HttpHeaders.EMPTY, ex, response);
     }
 
@@ -148,7 +155,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ApiResponse<Void>> handleUnreadableBody(HttpMessageNotReadableException ex) {
         // El mensaje de la excepción describe el parser y los tipos internos, así que no va al cliente
-        ApiResponse<Void> response = ApiResponse.error(400, "No se pudo leer el cuerpo de la solicitud");
+        ApiResponse<Void> response = envelope(400, "No se pudo leer el cuerpo de la solicitud");
         return clientError(HttpStatus.BAD_REQUEST, HttpHeaders.EMPTY, ex, response);
     }
 
@@ -160,7 +167,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<ApiResponse<Void>> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
-        ApiResponse<Void> response = ApiResponse.error(400, "Valor inválido para el parámetro '" + ex.getName() + "'");
+        ApiResponse<Void> response = envelope(400, "Valor inválido para el parámetro '" + ex.getName() + "'");
         return clientError(HttpStatus.BAD_REQUEST, HttpHeaders.EMPTY, ex, response);
     }
 
@@ -179,7 +186,7 @@ public class GlobalExceptionHandler {
             return handleErrorResponse(ex, errorResponse);
         }
         logger.error("[Nova Platform] Error interno no manejado", ex);
-        ApiResponse<Void> response = ApiResponse.error(500, INTERNAL_ERROR_MESSAGE);
+        ApiResponse<Void> response = envelope(500, INTERNAL_ERROR_MESSAGE);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
 
@@ -199,6 +206,21 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Arma el sobre de un error con un solo {@link ApiError}: el código del status y el mensaje. Si el
+     * mensaje falta o está en blanco, como el de una {@code IllegalArgumentException} sin texto, lleva
+     * el mensaje por defecto del status, porque un {@code ApiError} no admite un mensaje vacío.
+     *
+     * @param status el status HTTP
+     * @param message el mensaje para el cliente, o {@code null} si no hay uno
+     * @param <T> el tipo del dato, que un error no lleva
+     * @return el sobre de error
+     */
+    static <T> ApiResponse<T> envelope(int status, String message) {
+        String text = message != null && !message.isBlank() ? message : defaultMessage(status);
+        return ApiResponse.error(status, List.of(ApiError.of(ErrorCodes.of(status), text)));
+    }
+
+    /**
      * Responde una excepción que declara su status con él, y con sus headers, como el
      * {@code Allow} de un 405.
      *
@@ -214,8 +236,7 @@ public class GlobalExceptionHandler {
         // El detail es el texto que Spring arma para el cliente, como "Required header 'X-Tenant'
         // is not present.", o el motivo de una ResponseStatusException
         String detail = errorResponse.getBody().getDetail();
-        String message = detail != null && !detail.isBlank() ? detail : defaultMessage(status.value());
-        return clientError(status, errorResponse.getHeaders(), ex, ApiResponse.error(status.value(), message));
+        return clientError(status, errorResponse.getHeaders(), ex, envelope(status.value(), detail));
     }
 
     /**
@@ -247,7 +268,7 @@ public class GlobalExceptionHandler {
      */
     private static ResponseEntity<ApiResponse<Void>> serverError(HttpStatusCode status, HttpHeaders headers, Exception ex) {
         logger.error("[Nova Platform] Error {} al atender la solicitud", status.value(), ex);
-        ApiResponse<Void> response = ApiResponse.error(status.value(), INTERNAL_ERROR_MESSAGE);
+        ApiResponse<Void> response = envelope(status.value(), INTERNAL_ERROR_MESSAGE);
         return ResponseEntity.status(status).headers(headers).body(response);
     }
 

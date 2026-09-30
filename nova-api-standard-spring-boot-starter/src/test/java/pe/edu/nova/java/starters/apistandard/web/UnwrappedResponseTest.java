@@ -56,7 +56,7 @@ class UnwrappedResponseTest {
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.status").value(423))
                 .andExpect(jsonPath("$.data.lockedBy").value("inventario"))
-                .andExpect(jsonPath("$.errors[0].code").value("ERROR"));
+                .andExpect(jsonPath("$.errors[0].code").value("REQUEST_ERROR"));
     }
 
     @Test

@@ -140,7 +140,7 @@ public class ApiResponseInterceptor implements ResponseBodyAdvice<Object> {
      * @return el sobre de error
      */
     private static ApiResponse<Object> errorEnvelope(int status, Object body) {
-        ApiResponse<Object> error = ApiResponse.error(status, GlobalExceptionHandler.defaultMessage(status));
+        ApiResponse<Object> error = GlobalExceptionHandler.envelope(status, GlobalExceptionHandler.defaultMessage(status));
         if (body == null) {
             return error;
         }

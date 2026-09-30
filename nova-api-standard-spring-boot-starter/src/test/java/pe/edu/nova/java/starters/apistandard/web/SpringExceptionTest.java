@@ -26,7 +26,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
-/** Las excepciones propias de Spring MVC salen con su status, no como 500. */
+/** Las excepciones propias de Spring MVC salen con su status y su código, no como 500 ni como ERROR. */
 @SpringBootTest
 @AutoConfigureMockMvc
 @ExtendWith(OutputCaptureExtension.class)
@@ -41,7 +41,7 @@ class SpringExceptionTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.status").value(400))
-                .andExpect(jsonPath("$.errors[0].code").value("ERROR"))
+                .andExpect(jsonPath("$.errors[0].code").value("BAD_REQUEST"))
                 .andExpect(jsonPath("$.errors[0].message").value(containsString(ItemController.TENANT_HEADER)));
     }
 
@@ -51,6 +51,7 @@ class SpringExceptionTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.errors[0].code").value("BAD_REQUEST"))
                 .andExpect(jsonPath("$.errors[0].message").value("No se pudo leer el cuerpo de la solicitud"));
     }
 
@@ -84,6 +85,7 @@ class SpringExceptionTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.errors[0].code").value("BAD_REQUEST"))
                 .andExpect(jsonPath("$.errors[0].message").value(containsString("'id'")));
     }
 
@@ -92,6 +94,7 @@ class SpringExceptionTest {
         mvc.perform(get("/items/search"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.errors[0].code").value("BAD_REQUEST"))
                 .andExpect(jsonPath("$.errors[0].message").value(containsString("'name'")));
     }
 
@@ -101,7 +104,8 @@ class SpringExceptionTest {
                 .andExpect(status().isMethodNotAllowed())
                 .andExpect(header().string(HttpHeaders.ALLOW, containsString("GET")))
                 .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.status").value(405));
+                .andExpect(jsonPath("$.status").value(405))
+                .andExpect(jsonPath("$.errors[0].code").value("METHOD_NOT_ALLOWED"));
     }
 
     @Test
@@ -112,7 +116,8 @@ class SpringExceptionTest {
                         .content("Silla"))
                 .andExpect(status().isUnsupportedMediaType())
                 .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.status").value(415));
+                .andExpect(jsonPath("$.status").value(415))
+                .andExpect(jsonPath("$.errors[0].code").value("UNSUPPORTED_MEDIA_TYPE"));
     }
 
     @Test
@@ -121,6 +126,7 @@ class SpringExceptionTest {
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.status").value(409))
+                .andExpect(jsonPath("$.errors[0].code").value("CONFLICT"))
                 .andExpect(jsonPath("$.errors[0].message").value("El ítem ya está reservado"));
     }
 
@@ -130,6 +136,7 @@ class SpringExceptionTest {
                 .andExpect(status().isServiceUnavailable())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.status").value(503))
+                .andExpect(jsonPath("$.errors[0].code").value("SERVICE_UNAVAILABLE"))
                 .andExpect(jsonPath("$.errors[0].message").value("Error interno del servidor"))
                 .andExpect(content().string(not(containsString("Acme"))));
     }
@@ -139,8 +146,18 @@ class SpringExceptionTest {
         mvc.perform(get("/items/1/check"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400))
-                .andExpect(jsonPath("$.errors[0].code").value("ERROR"))
+                .andExpect(jsonPath("$.errors[0].code").value("BAD_REQUEST"))
                 .andExpect(jsonPath("$.errors[0].message").value("El ítem no es válido"));
+    }
+
+    @Test
+    void anIllegalArgumentWithoutMessageIsABadRequestWithTheStandardPhrase() throws Exception {
+        mvc.perform(get("/items/1/verify"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.errors[0].code").value("BAD_REQUEST"))
+                .andExpect(jsonPath("$.errors[0].message").value("Bad Request"));
     }
 
     @Test
@@ -148,6 +165,7 @@ class SpringExceptionTest {
         mvc.perform(get("/items/1/audit"))
                 .andExpect(status().isInternalServerError())
                 .andExpect(jsonPath("$.status").value(500))
+                .andExpect(jsonPath("$.errors[0].code").value("INTERNAL_SERVER_ERROR"))
                 .andExpect(jsonPath("$.errors[0].message").value("Error interno del servidor"))
                 .andExpect(content().string(not(containsString("Acme"))));
     }
@@ -157,6 +175,7 @@ class SpringExceptionTest {
         mvc.perform(get("/nada.txt"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.errors[0].code").value("NOT_FOUND"))
                 .andExpect(jsonPath("$.errors[0].message").value("Recurso no encontrado: nada.txt"));
     }
 
