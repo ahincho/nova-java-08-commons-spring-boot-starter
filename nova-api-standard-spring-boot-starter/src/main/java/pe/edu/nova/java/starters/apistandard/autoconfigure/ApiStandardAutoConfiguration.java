@@ -10,6 +10,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.ImportRuntimeHints;
 
 import pe.edu.nova.java.libs.api.standard.error.ErrorCatalog;
 import pe.edu.nova.java.libs.api.standard.error.ErrorPorts;
@@ -43,6 +44,7 @@ import pe.edu.nova.java.starters.apistandard.web.GlobalExceptionHandler;
         matchIfMissing = true
 )
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
+@ImportRuntimeHints(ApiStandardRuntimeHints.class)
 public class ApiStandardAutoConfiguration {
 
     /** Crea una nueva instancia de la auto-configuración. */
