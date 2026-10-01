@@ -103,5 +103,9 @@ subprojects {
         // and an empty NVD key (slower updates, acceptable for local dev).
         failBuildOnCVSS = (System.getenv("NOVA_OWASP_FAIL_ON_CVSS") ?: "11").toFloat()
         nvd.apiKey = System.getenv("NVD_API_KEY") ?: ""
+        // La ruta donde reusable-owasp-check.yml restaura el mirror NVD compartido. Sin ella el plugin
+        // usa su ruta por defecto, no ve el mirror y descarga la base entera, que no termina en 45 minutos.
+        data.directory = System.getenv("NOVA_OWASP_DATA_DIR")
+            ?: "${System.getProperty("user.home")}/.dependency-check-data"
     }
 }
