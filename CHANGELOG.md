@@ -1,5 +1,25 @@
 # Changelog
 
+## [3.0.0](https://github.com/ahincho/nova-java-08-commons-spring-boot-starter/compare/v2.0.0...v3.0.0) (2026-10-01)
+
+
+### ⚠ BREAKING CHANGES
+
+* error codes follow the platform catalog instead of ERROR, validation errors use BAD_REQUEST instead of VALIDATION_ERROR, an IllegalArgumentException is a platform error answered as 500, generic messages are the Spanish ones of the catalog, and ErrorCodes and GlobalExceptionHandler.envelope are gone. The README has the recipe.
+
+### Features
+
+* answer errors with the layered model of ADR-031 ([89c0b6a](https://github.com/ahincho/nova-java-08-commons-spring-boot-starter/commit/89c0b6aaeb7a8ba047883749ee03ce7d5a0fc163))
+
+
+### Bug Fixes
+
+* answer an error envelope when a controller returns 4xx or 5xx ([96675e4](https://github.com/ahincho/nova-java-08-commons-spring-boot-starter/commit/96675e49556d96cff1512d8f3f0b53510509b29f))
+* give each API error the code of its status ([6b6d27a](https://github.com/ahincho/nova-java-08-commons-spring-boot-starter/commit/6b6d27a89c603abe67fb734c58918e07481cf5e2))
+* leave actuator, the error controller and raw bodies unwrapped ([888bb4a](https://github.com/ahincho/nova-java-08-commons-spring-boot-starter/commit/888bb4a947bd49704c5ce8c30804c40ab541c24a))
+* map Spring MVC exceptions to their own 4xx status ([9122eac](https://github.com/ahincho/nova-java-08-commons-spring-boot-starter/commit/9122eacd9992c2e19e607a92cde575a0308bb56c))
+* write the real status in the API envelope ([339ad3b](https://github.com/ahincho/nova-java-08-commons-spring-boot-starter/commit/339ad3bbde4525ebfcadfdc7075af2867f1821f9))
+
 ## [2.0.0](https://github.com/ahincho/nova-java-08-commons-spring-boot-starter/compare/v1.0.2...v2.0.0) (2026-09-27)
 
 
