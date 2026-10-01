@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.0.1](https://github.com/ahincho/nova-java-08-commons-spring-boot-starter/compare/v3.0.0...v3.0.1) (2026-10-01)
+
+
+### Bug Fixes
+
+* register the envelope records for native images ([09a687b](https://github.com/ahincho/nova-java-08-commons-spring-boot-starter/commit/09a687bdb72a6507591f6cf9926b46db4a8df874))
+
 ## [3.0.0](https://github.com/ahincho/nova-java-08-commons-spring-boot-starter/compare/v2.0.0...v3.0.0) (2026-10-01)
 
 
