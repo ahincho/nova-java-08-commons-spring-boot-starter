@@ -7,13 +7,15 @@ plugins {
 val springBootVersion = "4.0.8"
 
 dependencies {
-    // api-standard library (from Maven Local)
-    api("pe.edu.nova.java.libs:nova-api-standard:1.0.2")
+    // El modelo de errores por capas de ADR-031 y sus tres puertos viven en nova-api-standard.
+    api("pe.edu.nova.java.libs:nova-api-standard:1.1.0")
 
     // Spring Boot auto-configuration
     compileOnly("org.springframework.boot:spring-boot-autoconfigure:$springBootVersion")
     compileOnly("org.springframework.boot:spring-boot-starter-webmvc:$springBootVersion")
     compileOnly("org.springframework.boot:spring-boot-starter-jackson:$springBootVersion")
+    // La métrica nova.errors se registra solo si el servicio tiene Micrometer, como con el actuator.
+    compileOnly("io.micrometer:micrometer-core:1.16.7")
 
     // Configuration processor
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor:$springBootVersion")

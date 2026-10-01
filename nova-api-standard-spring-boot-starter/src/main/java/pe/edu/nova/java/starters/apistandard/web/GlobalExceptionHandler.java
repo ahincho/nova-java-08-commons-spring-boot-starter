@@ -3,19 +3,20 @@ package pe.edu.nova.java.starters.apistandard.web;
 import java.lang.annotation.Annotation;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Objects;
+import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
+import org.slf4j.spi.LoggingEventBuilder;
 import org.springframework.context.MessageSourceResolvable;
 import org.springframework.core.MethodParameter;
 import org.springframework.core.annotation.MergedAnnotation;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
-import org.springframework.validation.FieldError;
 import org.springframework.validation.ObjectError;
 import org.springframework.validation.method.ParameterValidationResult;
 import org.springframework.web.ErrorResponse;
@@ -26,42 +27,36 @@ import org.springframework.web.method.annotation.HandlerMethodValidationExceptio
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
-import pe.edu.nova.java.libs.api.standard.error.ApiError;
-import pe.edu.nova.java.libs.api.standard.response.ApiResponse;
+import pe.edu.nova.java.libs.api.standard.error.ErrorPorts;
+import pe.edu.nova.java.libs.api.standard.error.FieldError;
+import pe.edu.nova.java.libs.api.standard.error.NovaError;
+import pe.edu.nova.java.libs.api.standard.error.PlatformError;
+import pe.edu.nova.java.libs.api.standard.error.SanitizedFailure;
+import pe.edu.nova.java.libs.api.standard.error.SerializedError;
 
 /**
- * Manejador global de excepciones que convierte errores en respuestas
- * estándar {@link ApiResponse}.
+ * El núcleo del manejo de errores en Spring MVC (ADR-031): responde cada error con los tres puertos de
+ * {@link ErrorPorts}, y antes lo registra en el log una sola vez.
  * <p>
- * Las excepciones propias de Spring MVC salen con su propio status: las que
- * implementan {@link ErrorResponse} (un header o un parámetro que falta, un
- * método o un tipo de contenido no soportado, una
- * {@code ResponseStatusException}) con el que declaran; un cuerpo ilegible o un
- * valor del tipo equivocado con 400; y un cuerpo o un parámetro que no pasa Bean
- * Validation con 400 y un error por campo.
- * </p>
+ * Un error de Nova ({@code DomainError}, {@code ApplicationError}, {@code InfrastructureError} o
+ * {@code PlatformError}) sale con el status de su tipo. Una excepción propia de Spring MVC sale con su
+ * status: un 4xx es {@code application}; un 502, un 503 o un 504, {@code infrastructure}; y cualquier
+ * otro 5xx, {@code platform}. Cualquier otra excepción es un {@code PlatformError} y sale como 500.
  * <p>
- * Todo 5xx lleva el mensaje genérico y se registra en {@code error} con su
- * causa. Un 4xx se registra en {@code warn}, sin stack trace, porque es el
- * cliente el que mandó algo que no corresponde.
- * </p>
+ * El log lleva el {@code traceId}, la capa, el código y, si hay, el proveedor, como campos. Lo esperado
+ * ({@code domain} y {@code application}) va en {@code warn}, sin stack trace; un incidente
+ * ({@code infrastructure} y {@code platform}) va en {@code error}, con la causa. Los puertos nunca ven el
+ * proveedor ni la causa: reciben un {@link SanitizedFailure}.
  * <p>
- * Cada error lleva el código de su status, del catálogo de la plataforma:
- * {@code NOT_FOUND} para un 404, {@code METHOD_NOT_ALLOWED} para un 405,
- * {@code INTERNAL_SERVER_ERROR} para un 500, y así. Un 4xx que el catálogo no
- * nombra lleva {@code REQUEST_ERROR}. Un error de validación lleva
- * {@code VALIDATION_ERROR}, uno por campo.
- * </p>
+ * Si la petición no tiene {@code traceId}, el handler genera uno y lo escribe igual en el log y en el
+ * cuerpo.
  *
  * @author Nova Platform
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
-
-    /** Mensaje de todo 5xx, que no revela qué falló por dentro. */
-    static final String INTERNAL_ERROR_MESSAGE = "Error interno del servidor";
+    private static final Logger LOGGER = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     /** Mensaje de un error de validación que no trae uno propio. */
     private static final String INVALID_VALUE_MESSAGE = "Valor inválido";
@@ -69,207 +64,224 @@ public class GlobalExceptionHandler {
     /** Paquete de las anotaciones con las que Spring MVC nombra un parámetro, como {@code @RequestParam}. */
     private static final String BIND_ANNOTATIONS_PACKAGE = "org.springframework.web.bind.annotation";
 
-    /** Crea una nueva instancia del manejador de excepciones. */
-    public GlobalExceptionHandler() {
+    private final ErrorPorts ports;
+    private final ErrorCounter counter;
+
+    /**
+     * Crea el manejador.
+     *
+     * @param ports   los tres puertos de errores: los de Nova o los del servicio
+     * @param counter cuenta cada error respondido
+     */
+    public GlobalExceptionHandler(ErrorPorts ports, ErrorCounter counter) {
+        this.ports = Objects.requireNonNull(ports, "ports es obligatorio");
+        this.counter = Objects.requireNonNull(counter, "counter es obligatorio");
     }
 
     /**
-     * Maneja excepciones de recurso no encontrado (404).
+     * Responde un error de Nova con el status de su tipo.
+     *
+     * @param error el error
+     * @return la respuesta que deciden los puertos
+     */
+    @ExceptionHandler(NovaError.class)
+    public ResponseEntity<Object> handleNovaError(NovaError error) {
+        try (MDC.MDCCloseable ignored = ensureTraceId()) {
+            SanitizedFailure failure = SanitizedFailure.of(error, ports.statusMapper().statusOf(error.type()));
+            log(failure, error.upstream().orElse(null), error);
+            return respond(failure, HttpHeaders.EMPTY);
+        }
+    }
+
+    /**
+     * Responde un recurso que no existe (404).
      *
      * @param ex la excepción
-     * @return respuesta con error 404
+     * @return la respuesta 404
      */
     @ExceptionHandler(NoResourceFoundException.class)
-    public ResponseEntity<ApiResponse<Void>> handleNotFound(NoResourceFoundException ex) {
-        ApiResponse<Void> response = envelope(404, "Recurso no encontrado: " + ex.getResourcePath());
-        return clientError(HttpStatus.NOT_FOUND, HttpHeaders.EMPTY, ex, response);
+    public ResponseEntity<Object> handleNotFound(NoResourceFoundException ex) {
+        return framework(404, "Recurso no encontrado: " + ex.getResourcePath(), List.of(), HttpHeaders.EMPTY, ex);
     }
 
     /**
-     * Maneja IllegalArgumentException (400).
+     * Responde un cuerpo que no pasa Bean Validation (400), con un error por campo. Una restricción sobre
+     * el objeto entero lleva el campo vacío.
      *
      * @param ex la excepción
-     * @return respuesta con error 400
-     */
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<ApiResponse<Void>> handleBadRequest(IllegalArgumentException ex) {
-        ApiResponse<Void> response = envelope(400, ex.getMessage());
-        return clientError(HttpStatus.BAD_REQUEST, HttpHeaders.EMPTY, ex, response);
-    }
-
-    /**
-     * Maneja un cuerpo que no pasa Bean Validation (400), con un error por campo.
-     *
-     * @param ex la excepción
-     * @return respuesta con error 400 y un {@link ApiError} de validación por cada campo inválido
+     * @return la respuesta 400
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ApiResponse<Void>> handleInvalidBody(MethodArgumentNotValidException ex) {
-        List<ApiError> errors = new ArrayList<>();
-        for (FieldError error : ex.getBindingResult().getFieldErrors()) {
-            errors.add(ApiError.validationError(error.getField(), messageOf(error)));
+    public ResponseEntity<Object> handleInvalidBody(MethodArgumentNotValidException ex) {
+        List<FieldError> fields = new ArrayList<>();
+        for (org.springframework.validation.FieldError error : ex.getBindingResult().getFieldErrors()) {
+            fields.add(FieldError.of(error.getField(), messageOf(error)));
         }
-        // Una restricción sobre el objeto entero no tiene campo
         for (ObjectError error : ex.getBindingResult().getGlobalErrors()) {
-            errors.add(ApiError.validationError(null, messageOf(error)));
+            fields.add(FieldError.of("", messageOf(error)));
         }
-        return clientError(HttpStatus.BAD_REQUEST, ex.getHeaders(), ex, ApiResponse.error(400, errors));
+        return framework(400, null, fields, ex.getHeaders(), ex);
     }
 
     /**
-     * Maneja un parámetro del método que no pasa Bean Validation (400), con un error por cada
-     * restricción que falla. Si lo que falla es el valor de retorno, es un defecto del servicio y
-     * sale como el 5xx que declara Spring.
+     * Responde un parámetro del método que no pasa Bean Validation (400), con un error por restricción.
+     * Si lo que falla es el valor de retorno, es un defecto del servicio y sale con el 5xx que declara
+     * Spring.
      *
      * @param ex la excepción
-     * @return respuesta con error 400 y un {@link ApiError} de validación por cada parámetro inválido
+     * @return la respuesta
      */
     @ExceptionHandler(HandlerMethodValidationException.class)
-    public ResponseEntity<ApiResponse<Void>> handleInvalidParameters(HandlerMethodValidationException ex) {
+    public ResponseEntity<Object> handleInvalidParameters(HandlerMethodValidationException ex) {
         HttpStatusCode status = ex.getStatusCode();
-        if (status.is5xxServerError()) {
-            return serverError(status, ex.getHeaders(), ex);
-        }
-        List<ApiError> errors = new ArrayList<>();
-        for (ParameterValidationResult result : ex.getParameterValidationResults()) {
-            String parameter = parameterName(result.getMethodParameter());
-            for (MessageSourceResolvable error : result.getResolvableErrors()) {
-                // Un objeto con @Valid trae sus errores por campo; una restricción sobre el
-                // parámetro, como @Max, trae el error del parámetro
-                String field = error instanceof FieldError fieldError ? fieldError.getField() : parameter;
-                errors.add(ApiError.validationError(field, messageOf(error)));
+        List<FieldError> fields = new ArrayList<>();
+        if (status.is4xxClientError()) {
+            for (ParameterValidationResult result : ex.getParameterValidationResults()) {
+                String parameter = parameterName(result.getMethodParameter());
+                for (MessageSourceResolvable error : result.getResolvableErrors()) {
+                    // Un objeto con @Valid trae sus errores por campo; una restricción sobre el parámetro,
+                    // como @Max, trae el error del parámetro
+                    String field = error instanceof org.springframework.validation.FieldError fieldError
+                            ? fieldError.getField()
+                            : parameter;
+                    fields.add(FieldError.of(field, messageOf(error)));
+                }
+            }
+            for (MessageSourceResolvable error : ex.getCrossParameterValidationResults()) {
+                fields.add(FieldError.of("", messageOf(error)));
             }
         }
-        for (MessageSourceResolvable error : ex.getCrossParameterValidationResults()) {
-            errors.add(ApiError.validationError(null, messageOf(error)));
-        }
-        return clientError(status, ex.getHeaders(), ex, ApiResponse.error(status.value(), errors));
+        return framework(status.value(), null, fields, ex.getHeaders(), ex);
     }
 
     /**
-     * Maneja un cuerpo que no se puede leer, como un JSON mal formado (400).
+     * Responde un cuerpo que no se puede leer, como un JSON mal formado (400).
      *
      * @param ex la excepción
-     * @return respuesta con error 400
+     * @return la respuesta 400
      */
     @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<ApiResponse<Void>> handleUnreadableBody(HttpMessageNotReadableException ex) {
+    public ResponseEntity<Object> handleUnreadableBody(HttpMessageNotReadableException ex) {
         // El mensaje de la excepción describe el parser y los tipos internos, así que no va al cliente
-        ApiResponse<Void> response = envelope(400, "No se pudo leer el cuerpo de la solicitud");
-        return clientError(HttpStatus.BAD_REQUEST, HttpHeaders.EMPTY, ex, response);
+        return framework(400, "No se pudo leer el cuerpo de la solicitud", List.of(), HttpHeaders.EMPTY, ex);
     }
 
     /**
-     * Maneja un parámetro con un valor del tipo equivocado, como un texto donde va un número (400).
+     * Responde un parámetro con un valor del tipo equivocado, como un texto donde va un número (400).
      *
      * @param ex la excepción
-     * @return respuesta con error 400
+     * @return la respuesta 400
      */
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
-    public ResponseEntity<ApiResponse<Void>> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
-        ApiResponse<Void> response = envelope(400, "Valor inválido para el parámetro '" + ex.getName() + "'");
-        return clientError(HttpStatus.BAD_REQUEST, HttpHeaders.EMPTY, ex, response);
+    public ResponseEntity<Object> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
+        String message = "Valor inválido para el parámetro '" + ex.getName() + "'";
+        return framework(400, message, List.of(), HttpHeaders.EMPTY, ex);
     }
 
     /**
-     * Maneja cualquier excepción no capturada (500). Las excepciones de Spring MVC que
-     * implementan {@link ErrorResponse} salen con el status que declaran.
+     * Responde cualquier otra excepción. Las de Spring MVC que implementan {@link ErrorResponse} (un header
+     * o un parámetro que falta, un método o un tipo de contenido no soportado, una
+     * {@code ResponseStatusException}) salen con su status y sus headers; el resto es un
+     * {@code PlatformError} y sale como 500.
      *
      * @param ex la excepción
-     * @return respuesta con error 500, o con el status de la {@link ErrorResponse}
+     * @return la respuesta
      */
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiResponse<Void>> handleGenericException(Exception ex) {
-        // Un header o un parámetro que falta es 400, un método no soportado 405, un tipo de
-        // contenido no soportado 415, y una ResponseStatusException trae el suyo
+    public ResponseEntity<Object> handleException(Exception ex) {
         if (ex instanceof ErrorResponse errorResponse) {
-            return handleErrorResponse(ex, errorResponse);
+            // El detail es el texto que Spring arma para el cliente, como "Required header 'X-Tenant' is
+            // not present.", o el motivo de una ResponseStatusException; en un 5xx no llega al cliente
+            return framework(errorResponse.getStatusCode().value(), errorResponse.getBody().getDetail(),
+                    List.of(), errorResponse.getHeaders(), ex);
         }
-        logger.error("[Nova Platform] Error interno no manejado", ex);
-        ApiResponse<Void> response = envelope(500, INTERNAL_ERROR_MESSAGE);
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        return handleNovaError(PlatformError.internal(ex));
     }
 
     /**
-     * El mensaje de un error que no trae uno propio: el genérico si es un 5xx, y la frase estándar
-     * del status si es un 4xx.
+     * Responde una excepción propia del framework, que ya trae su status.
      *
-     * @param status el status HTTP
-     * @return el mensaje del error
+     * @param status  el status
+     * @param message el mensaje para el cliente, que solo llega en un 4xx (puede ser null)
+     * @param fields  los errores por campo, que solo llegan en un 4xx
+     * @param headers los headers que declara la excepción, como el {@code Allow} de un 405
+     * @param ex      la excepción, para el log
+     * @return la respuesta que deciden los puertos
      */
-    static String defaultMessage(int status) {
-        if (status >= 500) {
-            return INTERNAL_ERROR_MESSAGE;
+    private ResponseEntity<Object> framework(int status, String message, List<FieldError> fields,
+                                             HttpHeaders headers, Exception ex) {
+        try (MDC.MDCCloseable ignored = ensureTraceId()) {
+            SanitizedFailure failure = SanitizedFailure.ofStatus(status, null, message, fields, null);
+            log(failure, null, ex);
+            return respond(failure, headers);
         }
-        HttpStatus httpStatus = HttpStatus.resolve(status);
-        return httpStatus != null ? httpStatus.getReasonPhrase() : "Error en la solicitud";
     }
 
     /**
-     * Arma el sobre de un error con un solo {@link ApiError}: el código del status y el mensaje. Si el
-     * mensaje falta o está en blanco, como el de una {@code IllegalArgumentException} sin texto, lleva
-     * el mensaje por defecto del status, porque un {@code ApiError} no admite un mensaje vacío.
+     * Arma la respuesta con lo que deciden el catálogo y el serializador.
      *
-     * @param status el status HTTP
-     * @param message el mensaje para el cliente, o {@code null} si no hay uno
-     * @param <T> el tipo del dato, que un error no lleva
-     * @return el sobre de error
-     */
-    static <T> ApiResponse<T> envelope(int status, String message) {
-        String text = message != null && !message.isBlank() ? message : defaultMessage(status);
-        return ApiResponse.error(status, List.of(ApiError.of(ErrorCodes.of(status), text)));
-    }
-
-    /**
-     * Responde una excepción que declara su status con él, y con sus headers, como el
-     * {@code Allow} de un 405.
-     *
-     * @param ex la excepción
-     * @param errorResponse la misma excepción, vista como {@link ErrorResponse}
-     * @return respuesta con el status de la excepción
-     */
-    private static ResponseEntity<ApiResponse<Void>> handleErrorResponse(Exception ex, ErrorResponse errorResponse) {
-        HttpStatusCode status = errorResponse.getStatusCode();
-        if (status.is5xxServerError()) {
-            return serverError(status, errorResponse.getHeaders(), ex);
-        }
-        // El detail es el texto que Spring arma para el cliente, como "Required header 'X-Tenant'
-        // is not present.", o el motivo de una ResponseStatusException
-        String detail = errorResponse.getBody().getDetail();
-        return clientError(status, errorResponse.getHeaders(), ex, envelope(status.value(), detail));
-    }
-
-    /**
-     * Responde un 4xx y lo registra en {@code warn}, sin stack trace. El registro lleva lo mismo que
-     * ve el cliente, así que no repite los valores que mandó.
-     *
-     * @param status el status HTTP
-     * @param headers los headers de la respuesta
-     * @param ex la excepción
-     * @param response el cuerpo de la respuesta
+     * @param failure el fallo saneado
+     * @param extra   los headers propios de la excepción
      * @return la respuesta
      */
-    private static ResponseEntity<ApiResponse<Void>> clientError(
-            HttpStatusCode status, HttpHeaders headers, Exception ex, ApiResponse<Void> response) {
-        if (logger.isWarnEnabled()) {
-            logger.warn("[Nova Platform] Solicitud rechazada con {} ({}): {}",
-                    status.value(), ex.getClass().getSimpleName(), describe(response.errors()));
-        }
-        return ResponseEntity.status(status).headers(headers).body(response);
+    private ResponseEntity<Object> respond(SanitizedFailure failure, HttpHeaders extra) {
+        SerializedError serialized = ports.respond(failure);
+        HttpHeaders headers = new HttpHeaders();
+        headers.addAll(extra);
+        serialized.headers().forEach(headers::set);
+        return ResponseEntity.status(serialized.status()).headers(headers).body(serialized.body());
     }
 
     /**
-     * Responde un 5xx con el mensaje genérico, y registra la causa completa en {@code error}.
+     * Escribe la línea de log del error, una sola vez y antes de llamar a los puertos, y lo cuenta.
      *
-     * @param status el status HTTP
-     * @param headers los headers de la respuesta
-     * @param ex la excepción
-     * @return la respuesta
+     * @param failure  el fallo saneado, que trae el status, la capa, el código y el {@code traceId}
+     * @param upstream el proveedor que falló, si hay uno; solo va al log
+     * @param cause    la excepción, cuyo stack trace va al log si es un incidente
      */
-    private static ResponseEntity<ApiResponse<Void>> serverError(HttpStatusCode status, HttpHeaders headers, Exception ex) {
-        logger.error("[Nova Platform] Error {} al atender la solicitud", status.value(), ex);
-        ApiResponse<Void> response = envelope(status.value(), INTERNAL_ERROR_MESSAGE);
-        return ResponseEntity.status(status).headers(headers).body(response);
+    private void log(SanitizedFailure failure, String upstream, Throwable cause) {
+        boolean incident = failure.layer().isIncident();
+        LoggingEventBuilder event = incident ? LOGGER.atError().setCause(cause) : LOGGER.atWarn();
+        event = event.addKeyValue("traceId", failure.traceId().orElse(null))
+                .addKeyValue("layer", failure.layer().label())
+                .addKeyValue("code", failure.code())
+                .addKeyValue("status", failure.status());
+        if (upstream != null) {
+            event = event.addKeyValue("upstream", upstream);
+        }
+        // Lo esperado registra lo mismo que ve el cliente; un incidente, la excepción con su mensaje. Los
+        // campos van también en el texto, porque un log de consola sin formato estructurado no los muestra
+        String detail = incident ? describe(cause) : failure.message();
+        event.log("[Nova Platform] {} {} layer={}{} traceId={} ({}): {}",
+                failure.status(), failure.code(), failure.layer().label(),
+                upstream != null ? " upstream=" + upstream : "",
+                failure.traceId().orElse("-"), cause.getClass().getSimpleName(), detail);
+        counter.increment(failure.layer().label(), failure.code());
+    }
+
+    /**
+     * Si la petición no tiene {@code traceId}, genera uno y lo deja en el MDC mientras se responde el
+     * error, para que el log y el cuerpo lleven el mismo.
+     *
+     * @return lo que lo saca del MDC al terminar, o null si ya había uno
+     */
+    private static MDC.MDCCloseable ensureTraceId() {
+        String current = MDC.get(MdcTraceIdSource.TRACE_ID_KEY);
+        if (current != null && !current.isBlank()) {
+            return null;
+        }
+        return MDC.putCloseable(MdcTraceIdSource.TRACE_ID_KEY, UUID.randomUUID().toString().replace("-", ""));
+    }
+
+    /**
+     * Describe una excepción para el log, con su mensaje si lo tiene.
+     *
+     * @param cause la excepción
+     * @return el mensaje, o el nombre de la clase si no trae uno
+     */
+    private static String describe(Throwable cause) {
+        String message = cause.getMessage();
+        return message == null || message.isBlank() ? cause.getClass().getName() : message;
     }
 
     /**
@@ -277,7 +289,7 @@ public class GlobalExceptionHandler {
      * {@code @RequestHeader} o {@code @PathVariable}, o el del parámetro si no declara ninguno.
      *
      * @param parameter el parámetro del método
-     * @return el nombre, o {@code null} si no se conoce
+     * @return el nombre, o vacío si no se conoce
      */
     private static String parameterName(MethodParameter parameter) {
         for (Annotation annotation : parameter.getParameterAnnotations()) {
@@ -288,7 +300,8 @@ public class GlobalExceptionHandler {
                 }
             }
         }
-        return parameter.getParameterName();
+        String name = parameter.getParameterName();
+        return name != null ? name : "";
     }
 
     /**
@@ -300,17 +313,5 @@ public class GlobalExceptionHandler {
     private static String messageOf(MessageSourceResolvable error) {
         String message = error.getDefaultMessage();
         return message != null && !message.isBlank() ? message : INVALID_VALUE_MESSAGE;
-    }
-
-    /**
-     * Resume los errores de una respuesta para el registro.
-     *
-     * @param errors los errores
-     * @return cada error con su campo, si lo tiene
-     */
-    private static String describe(List<ApiError> errors) {
-        return errors.stream()
-                .map(error -> error.field() != null ? error.field() + ": " + error.message() : error.message())
-                .collect(Collectors.joining("; "));
     }
 }

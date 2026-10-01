@@ -30,7 +30,7 @@ class ErrorEnvelopeTest {
                 .andExpect(jsonPath("$.data").value(nullValue()))
                 .andExpect(jsonPath("$.errors.length()").value(1))
                 .andExpect(jsonPath("$.errors[0].code").value("NOT_FOUND"))
-                .andExpect(jsonPath("$.errors[0].message").value("Not Found"));
+                .andExpect(jsonPath("$.errors[0].message").value("El recurso no existe"));
     }
 
     @Test
@@ -40,7 +40,7 @@ class ErrorEnvelopeTest {
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.status").value(503))
                 .andExpect(jsonPath("$.errors[0].code").value("SERVICE_UNAVAILABLE"))
-                .andExpect(jsonPath("$.errors[0].message").value("Error interno del servidor"));
+                .andExpect(jsonPath("$.errors[0].message").value("El servicio no está disponible en este momento"));
     }
 
     @Test

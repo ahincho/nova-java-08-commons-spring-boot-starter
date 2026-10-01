@@ -62,7 +62,7 @@ class SpringExceptionTest {
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.errors.length()").value(2))
-                .andExpect(jsonPath("$.errors[*].code", everyItem(is("VALIDATION_ERROR"))))
+                .andExpect(jsonPath("$.errors[*].code", everyItem(is("BAD_REQUEST"))))
                 .andExpect(jsonPath("$.errors[*].field", containsInAnyOrder("name", "quantity")))
                 .andExpect(jsonPath("$.errors[*].message",
                         containsInAnyOrder("El nombre es obligatorio", "La cantidad debe ser positiva")));
@@ -74,7 +74,7 @@ class SpringExceptionTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.status").value(400))
-                .andExpect(jsonPath("$.errors[0].code").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.errors[0].code").value("BAD_REQUEST"))
                 .andExpect(jsonPath("$.errors[0].field").value("limit"))
                 .andExpect(jsonPath("$.errors[0].message").value("No se pueden pedir más de 10"));
     }
@@ -137,27 +137,20 @@ class SpringExceptionTest {
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.status").value(503))
                 .andExpect(jsonPath("$.errors[0].code").value("SERVICE_UNAVAILABLE"))
-                .andExpect(jsonPath("$.errors[0].message").value("Error interno del servidor"))
+                .andExpect(jsonPath("$.errors[0].message").value("El servicio no está disponible en este momento"))
                 .andExpect(content().string(not(containsString("Acme"))));
     }
 
+    // ADR-031: una IllegalArgumentException es un defecto del servicio, no una entrada inválida. Quien
+    // quiere un 400 lanza ApplicationError.invalidInput.
     @Test
-    void anIllegalArgumentIsStillABadRequestWithItsMessage() throws Exception {
+    void anIllegalArgumentIsAPlatformErrorAndHidesItsMessage() throws Exception {
         mvc.perform(get("/items/1/check"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status").value(400))
-                .andExpect(jsonPath("$.errors[0].code").value("BAD_REQUEST"))
-                .andExpect(jsonPath("$.errors[0].message").value("El ítem no es válido"));
-    }
-
-    @Test
-    void anIllegalArgumentWithoutMessageIsABadRequestWithTheStandardPhrase() throws Exception {
-        mvc.perform(get("/items/1/verify"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.status").value(400))
-                .andExpect(jsonPath("$.errors[0].code").value("BAD_REQUEST"))
-                .andExpect(jsonPath("$.errors[0].message").value("Bad Request"));
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.status").value(500))
+                .andExpect(jsonPath("$.errors[0].code").value("INTERNAL_SERVER_ERROR"))
+                .andExpect(jsonPath("$.errors[0].message").value("Error interno del servidor"))
+                .andExpect(content().string(not(containsString("El ítem no es válido"))));
     }
 
     @Test

@@ -1,6 +1,7 @@
 package pe.edu.nova.java.starters.apistandard.web;
 
 import java.util.List;
+import java.util.Objects;
 
 import org.springframework.core.MethodParameter;
 import org.springframework.core.annotation.AnnotatedElementUtils;
@@ -19,6 +20,8 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
 
+import pe.edu.nova.java.libs.api.standard.error.ErrorPorts;
+import pe.edu.nova.java.libs.api.standard.error.SanitizedFailure;
 import pe.edu.nova.java.libs.api.standard.response.ApiResponse;
 
 /**
@@ -51,14 +54,24 @@ public class ApiResponseInterceptor implements ResponseBodyAdvice<Object> {
     /** Paquete de Spring Boot: ahí viven los endpoints de Actuator y los controladores de errores. */
     private static final String SPRING_BOOT_PACKAGE = "org.springframework.boot.";
 
-    /** Crea una nueva instancia del interceptor. */
-    public ApiResponseInterceptor() {
+    private final ErrorPorts ports;
+
+    /**
+     * Crea el interceptor.
+     *
+     * @param ports los puertos de errores, con los que arma el sobre de un 4xx o 5xx sin excepción
+     */
+    public ApiResponseInterceptor(ErrorPorts ports) {
+        this.ports = Objects.requireNonNull(ports, "ports es obligatorio");
     }
 
     @Override
     public boolean supports(MethodParameter returnType,
                             Class<? extends HttpMessageConverter<?>> converterType) {
-        return isObjectConverter(converterType) && isApplicationHandler(returnType.getContainingClass());
+        // Lo que responde GlobalExceptionHandler ya lo armaron los puertos, aunque no sea un ApiResponse
+        return isObjectConverter(converterType)
+                && returnType.getContainingClass() != GlobalExceptionHandler.class
+                && isApplicationHandler(returnType.getContainingClass());
     }
 
     @Override
@@ -131,20 +144,20 @@ public class ApiResponseInterceptor implements ResponseBodyAdvice<Object> {
     }
 
     /**
-     * Arma el sobre de error de un 4xx o 5xx, con un error como los de
-     * {@link GlobalExceptionHandler}. Si el controlador mandó un cuerpo propio, se conserva en
-     * {@code data} para no perderlo.
+     * Arma el sobre de error de un 4xx o 5xx con los puertos, como una excepción del framework con ese
+     * status. Si el controlador mandó un cuerpo propio, se conserva en {@code data} para no perderlo; si
+     * el serializador del servicio no arma un {@link ApiResponse}, sale lo que él arme.
      *
      * @param status el status HTTP de la respuesta
      * @param body el cuerpo del controlador, o {@code null} si no mandó ninguno
      * @return el sobre de error
      */
-    private static ApiResponse<Object> errorEnvelope(int status, Object body) {
-        ApiResponse<Object> error = GlobalExceptionHandler.envelope(status, GlobalExceptionHandler.defaultMessage(status));
-        if (body == null) {
-            return error;
+    private Object errorEnvelope(int status, Object body) {
+        Object serialized = ports.respond(SanitizedFailure.ofStatus(status, null, null, null, null)).body();
+        if (body == null || !(serialized instanceof ApiResponse<?> error)) {
+            return serialized;
         }
-        return new ApiResponse<>(false, status, body, error.errors(), null, List.of(), null, null);
+        return new ApiResponse<>(false, status, body, error.errors(), error.metadata(), List.of(), null, null);
     }
 
     /**
