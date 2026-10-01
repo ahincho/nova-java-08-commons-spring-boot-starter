@@ -14,7 +14,7 @@ import org.springframework.context.annotation.Import;
  */
 @SpringBootConfiguration
 @EnableAutoConfiguration
-@Import({ItemController.class, ItemExceptionHandler.class})
+@Import({ItemController.class, ItemExceptionHandler.class, OrderController.class})
 class ApiStandardTestApplication {
 
     /**

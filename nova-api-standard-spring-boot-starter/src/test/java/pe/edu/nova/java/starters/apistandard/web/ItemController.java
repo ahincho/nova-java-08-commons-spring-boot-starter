@@ -193,17 +193,6 @@ class ItemController {
     }
 
     /**
-     * Verifica un ítem: falla con una {@link IllegalArgumentException} que no trae mensaje.
-     *
-     * @param id el ítem
-     * @return nunca retorna
-     */
-    @GetMapping("/{id}/verify")
-    public Item verify(@PathVariable("id") long id) {
-        throw new IllegalArgumentException();
-    }
-
-    /**
      * Audita un ítem: falla con una excepción que nadie maneja.
      *
      * @param id el ítem
