@@ -1,5 +1,21 @@
 # Changelog
 
+## [4.0.0](https://github.com/ahincho/nova-java-08-commons-spring-boot-starter/compare/v3.0.1...v4.0.0) (2026-10-02)
+
+
+### ⚠ BREAKING CHANGES
+
+* a field without @Masked is no longer masked just for being called name, email, phone, dni, card, account, ip or one of the other names on the inference list. Mark the fields that are personal data with @Masked or @MaskedClass, or set nova.mask.infer-by-field-name=true to keep the previous behavior.
+
+### Features
+
+* mask only what is annotated and make inference by field name opt-in ([25ad308](https://github.com/ahincho/nova-java-08-commons-spring-boot-starter/commit/25ad308db87150ed4df0e83038351d2ee73eeeaf))
+
+
+### Bug Fixes
+
+* start the service when nova.mask.enabled is false ([237bd25](https://github.com/ahincho/nova-java-08-commons-spring-boot-starter/commit/237bd255117badd8bd4a315dae2e402f2db9580e))
+
 ## [3.0.1](https://github.com/ahincho/nova-java-08-commons-spring-boot-starter/compare/v3.0.0...v3.0.1) (2026-10-01)
 
 
