@@ -19,6 +19,15 @@ public class MaskProperties {
     /** Habilita o deshabilita todo el starter. */
     private boolean enabled = true;
 
+    /**
+     * Enmascara por el nombre del campo, sin anotaciones (name, email, phone y similares), en todo
+     * JSON que serializa el servicio. Apagado por defecto: solo se enmascara lo que lleva @Masked o
+     * está en una clase con @MaskedClass. Es global, así que con la propiedad encendida el name de
+     * un producto se contesta enmascarado igual que el de una persona; @SkipMasking deja un campo
+     * o una clase en claro.
+     */
+    private boolean inferByFieldName = false;
+
     /** Código de país ISO 3166-1 alpha-2 predeterminado. */
     private String defaultCountry = CountryCode.fromLocale().name();
 
@@ -51,6 +60,24 @@ public class MaskProperties {
      */
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
+    }
+
+    /**
+     * Indica si se enmascara por el nombre del campo aunque no lleve anotación.
+     *
+     * @return {@code true} si se infiere el tipo de enmascaramiento por el nombre del campo
+     */
+    public boolean isInferByFieldName() {
+        return inferByFieldName;
+    }
+
+    /**
+     * Establece si se enmascara por el nombre del campo aunque no lleve anotación.
+     *
+     * @param inferByFieldName {@code true} para inferir el tipo por el nombre del campo
+     */
+    public void setInferByFieldName(boolean inferByFieldName) {
+        this.inferByFieldName = inferByFieldName;
     }
 
     /**

@@ -46,6 +46,7 @@ public class MaskInfoContributor implements InfoContributor {
     public void contribute(Info.Builder builder) {
         Map<String, Object> maskInfo = new LinkedHashMap<>();
         maskInfo.put("enabled", properties.isEnabled());
+        maskInfo.put("inferByFieldName", properties.isInferByFieldName());
         maskInfo.put("defaultCountry", properties.getDefaultCountry());
         maskInfo.put("defaultMaskChar", String.valueOf(properties.getDefaultMaskChar()));
         maskInfo.put("logEnabled", properties.getLog().isEnabled());

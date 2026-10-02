@@ -8,6 +8,7 @@ import pe.edu.nova.java.starters.mask.config.MaskProperties;
 import pe.edu.nova.java.libs.mask.utils.CountryCode;
 import pe.edu.nova.java.libs.mask.utils.MaskType;
 import pe.edu.nova.java.libs.mask.utils.annotation.Masked;
+import pe.edu.nova.java.libs.mask.utils.annotation.MaskedClass;
 import pe.edu.nova.java.libs.mask.utils.annotation.MaskConfigAnnotation;
 import pe.edu.nova.java.libs.mask.utils.annotation.SkipMasking;
 import pe.edu.nova.java.libs.mask.utils.strategy.StrategyRegistry;
@@ -17,19 +18,25 @@ import tools.jackson.databind.ser.BeanPropertyWriter;
 import tools.jackson.databind.ser.ValueSerializerModifier;
 
 /**
- * Modificador de serialización de Jackson 3 que enmascara automáticamente
- * campos {@code String} sensibles durante la serialización JSON.
+ * Modificador de serialización de Jackson 3 que enmascara campos {@code String}
+ * durante la serialización JSON.
  * <p>
- * El enmascaramiento se aplica en tres niveles de prioridad:
+ * Por defecto solo se enmascara lo que el código pide con una anotación. El modificador es global:
+ * alcanza todo JSON que serializa el servicio, y enmascarar por el nombre de un campo cambiaría lo
+ * que contesta cualquier servicio que use el starter, como el {@code name} de un producto, sin que
+ * lo haya pedido. Se aplica en este orden de prioridad:
  * <ol>
- *   <li>Campos con {@code @Masked} explícito — usa el tipo y país de la anotación.</li>
- *   <li>Clases con {@code @MaskedClass} — enmascara todos los campos {@code String} por inferencia.</li>
- *   <li>Por defecto — enmascara cualquier campo {@code String} cuyo nombre coincida
- *       con el mapa de inferencia (email, telefono, dni, tarjeta, etc.).</li>
+ *   <li>Campos con {@code @SkipMasking} — nunca se enmascaran.</li>
+ *   <li>Campos con {@code @Masked} — usan el tipo y país de la anotación, o infieren el tipo del
+ *       nombre del campo si no lo declaran. Se respetan incluso con {@code @SkipMasking} en la
+ *       clase.</li>
+ *   <li>Clases con {@code @SkipMasking} — el resto de sus campos no se enmascara.</li>
+ *   <li>Clases con {@code @MaskedClass}, o cualquier clase si {@code nova.mask.infer-by-field-name}
+ *       es {@code true} — enmascara los campos {@code String} cuyo nombre coincida con el mapa de
+ *       inferencia (email, telefono, dni, tarjeta, etc.). Los de otro nombre se dejan como están.</li>
  * </ol>
  * <p>
- * Este comportamiento por defecto se puede desactivar con la propiedad
- * {@code nova.mask.enabled=false}.
+ * Todo se desactiva con la propiedad {@code nova.mask.enabled=false}.
  * </p>
  *
  * @author Nova Platform
@@ -94,6 +101,9 @@ public class MaskedBeanSerializerModifier extends ValueSerializerModifier {
         Class<?> beanClass = beanDesc.getBeanClass();
         MaskConfigAnnotation classAnnotation = beanClass.getAnnotation(MaskConfigAnnotation.class);
         boolean skipClass = beanClass.isAnnotationPresent(SkipMasking.class);
+        // Inferir por el nombre es opt-in: lo pide el servicio entero con la propiedad, o una clase
+        // para sí misma con @MaskedClass. Sin ninguna de las dos solo se enmascara lo que lleva @Masked.
+        boolean inferByName = properties.isInferByFieldName() || beanClass.isAnnotationPresent(MaskedClass.class);
         char classMaskChar = classAnnotation != null ? classAnnotation.maskChar() : properties.getDefaultMaskChar();
         String classCountry = classAnnotation != null && !classAnnotation.country().isEmpty()
                 ? classAnnotation.country()
@@ -116,8 +126,8 @@ public class MaskedBeanSerializerModifier extends ValueSerializerModifier {
                 continue;
             }
 
-            // @SkipMasking a nivel de clase — no enmascarar por inferencia
-            if (skipClass) {
+            // @SkipMasking a nivel de clase, o nadie pidió inferir por el nombre — no enmascarar
+            if (skipClass || !inferByName) {
                 continue;
             }
 

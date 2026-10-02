@@ -9,7 +9,7 @@ Spring; these modules are the wiring.
 | Module | Auto-configures | Wraps |
 |---|---|---|
 | `nova-api-standard-spring-boot-starter` | `ApiResponseInterceptor`, `GlobalExceptionHandler` | [nova-api-standard](https://github.com/ahincho/nova-java-01-api-standard) |
-| `nova-mask-spring-boot-starter` | `MaskAutoConfiguration`, plus an Actuator health indicator and info contributor | [nova-mask-utils](https://github.com/ahincho/nova-java-04-mask-utils) |
+| `nova-mask-spring-boot-starter` | `MaskAutoConfiguration`, the Jackson masking of annotated fields, plus an Actuator health indicator and info contributor | [nova-mask-utils](https://github.com/ahincho/nova-java-04-mask-utils) |
 
 Both register through `AutoConfiguration.imports`, so adding the
 dependency is all the wiring an application does.
@@ -31,8 +31,8 @@ repositories {
 }
 
 dependencies {
-    implementation("pe.edu.nova.java.starters:nova-api-standard-spring-boot-starter:3.0.0")
-    implementation("pe.edu.nova.java.starters:nova-mask-spring-boot-starter:3.0.0")
+    implementation("pe.edu.nova.java.starters:nova-api-standard-spring-boot-starter:4.0.0")
+    implementation("pe.edu.nova.java.starters:nova-mask-spring-boot-starter:4.0.0")
 }
 ```
 
@@ -77,6 +77,96 @@ The three ports of ADR-031 are beans with `@ConditionalOnMissingBean`:
 starter of an organization such as UTP, declares its own and this starter
 uses it, without forking. The ports only ever receive a `SanitizedFailure`,
 so a port written by an organization cannot leak the upstream or the cause.
+
+**Masking.** A field is masked only when the code asks for it. Mark the field, or
+the whole class:
+
+```java
+import pe.edu.nova.java.libs.mask.utils.MaskType;
+import pe.edu.nova.java.libs.mask.utils.annotation.Masked;
+import pe.edu.nova.java.libs.mask.utils.annotation.MaskedClass;
+
+public record Customer(
+        long id,
+        String name,                                      // "Juan Perez": not marked, answered as is
+        @Masked(type = MaskType.EMAIL) String email,      // "j*********@acme.pe"
+        @Masked(type = MaskType.PHONE) String phone) {}   // "+51 *** *** 321"
+
+@MaskedClass                                              // every String whose name is on the list below
+public record Patient(long id, String name, String email, String diagnosis) {}
+// name "J*** P****", email "j*********@acme.pe", diagnosis as is
+```
+
+| Annotation | Effect |
+|---|---|
+| `@Masked(type = ...)` on a field | masks that field with the strategy of the type; without a `type`, the type comes from the name of the field |
+| `@MaskedClass` on a class | masks the `String` fields of that class whose name is on the inference list; the others stay as they are |
+| `@SkipMasking` on a field | keeps the field in the clear, even with the inference below |
+| `@SkipMasking` on a class | the class is not masked by name; a field with `@Masked` is still masked |
+
+**Masking by the name of the field is opt-in.** The masking is a serializer of the
+`JsonMapper` that Spring Boot builds, so it reaches every JSON written with that
+mapper, not only the responses of the controllers. That is why a field is not masked
+for being called `name`: it may be the name of a product, and a service that never
+asked for masking would answer `"name": "T***"`. A service that wants the inference
+for every object turns it on:
+
+```yaml
+nova:
+  mask:
+    infer-by-field-name: true
+```
+
+With it on, every `String` field whose name is on this list is masked, annotated or
+not. The JSON name of the property is compared in lower case:
+
+| Masked as | Field names |
+|---|---|
+| person name | `name`, `nombre`, `firstname`, `lastname` |
+| email | `email`, `correo`, `mail` |
+| phone | `phone`, `telefono`, `tel`, `celular` |
+| identity document | `dni`, `ssn`, `document`, `documento`, `passport`, `pasaporte` |
+| credit card | `creditcard`, `tarjeta`, `card` |
+| bank account | `account`, `cuenta`, `iban`, `cci` |
+| IP address | `ip`, `ipaddress` |
+
+| Property | Default | Effect |
+|---|---|---|
+| `nova.mask.enabled` | `true` | `false` turns the whole starter off: nothing is masked |
+| `nova.mask.infer-by-field-name` | `false` | `true` also masks by the name of the field, with no annotation |
+
+`/actuator/info` reports the active value as `mask.inferByFieldName`.
+
+**Logs.** `MaskingLogbackLayout` looks for emails, 16-digit card numbers, IPv4
+addresses and phones with a country code in the text of a log line. It works by
+pattern and not by the name of a field, so the property above does not reach it. The
+starter only registers it as a bean; it does not attach it to a Logback appender.
+
+## Migrating to 4.0.0
+
+Until 3.0.1 the mask starter also masked by the name of the field alone: every
+`String` called `name`, `email`, `phone`, `dni`, `card`, `account`, `ip` or one of the
+other names above came out masked in every response, annotated or not, so the `name`
+of a product was answered as `T***`. From 4.0.0 only what carries `@Masked`, or sits
+in a class with `@MaskedClass`, is masked. The API standard starter changes nothing:
+it is published at 4.0.0 because the two modules share one version.
+
+| Before (3.x) | From 4.0.0 | What to do |
+|---|---|---|
+| a `name`, `email`, `phone`... without annotation came out masked | it is answered as is | mark the fields that are personal data, as below |
+| `@MaskedClass` was ignored, and the names were masked anyway | it masks the `String` fields of its class that have a name on the list | nothing |
+| a test asserted a masked value such as `T***` | the value comes in the clear | assert the value, or mark the field |
+| `nova.mask.enabled=false` made the application fail to start | it turns the starter off | nothing |
+
+A service that relied on the implicit masking has two ways out:
+
+1. **Mark the fields that are personal data.** It is the recommended one:
+   `@Masked(type = MaskType.EMAIL)` on the field, or `@MaskedClass` on a class that
+   holds only personal data. The decision is then in the code, and it no longer
+   reaches the `name` of a product.
+2. **Turn the old behaviour back on** with `nova.mask.infer-by-field-name: true`.
+   Every field with a name on the list is masked again, in every JSON the service
+   serializes.
 
 ## Migrating to 3.0.0
 

@@ -12,9 +12,12 @@ import org.springframework.test.web.servlet.MockMvc;
 
 /**
  * Con {@code nova.mask.enabled=false} el servicio arranca y el starter no enmascara nada, ni
- * siquiera lo que lleva {@code @Masked} o {@code @MaskedClass}.
+ * siquiera lo que lleva {@code @Masked} o {@code @MaskedClass}, aunque el servicio también haya
+ * pedido inferir por el nombre del campo.
  */
-@SpringBootTest(classes = MaskTestApplication.class, properties = "nova.mask.enabled=false")
+@SpringBootTest(
+        classes = MaskTestApplication.class,
+        properties = {"nova.mask.enabled=false", "nova.mask.infer-by-field-name=true"})
 @AutoConfigureMockMvc
 class MaskedResponseDisabledTest {
 
