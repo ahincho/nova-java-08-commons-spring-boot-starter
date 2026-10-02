@@ -16,12 +16,17 @@ import pe.edu.nova.java.libs.mask.utils.strategy.StrategyRegistry;
  * Registra un {@link MaskingLogbackLayout} que intercepta mensajes de log
  * y enmascara datos sensibles detectados automáticamente.
  * </p>
+ * <p>
+ * Depende del {@code StrategyRegistry} de {@link MaskAutoConfiguration}, así que se apaga con
+ * {@code nova.mask.enabled=false} igual que ella; {@code nova.mask.log.enabled=false} apaga solo
+ * el layout.
+ * </p>
  *
  * @author Nova Platform
  */
 @AutoConfiguration(after = MaskAutoConfiguration.class)
 @ConditionalOnProperty(
-        prefix = "nova.mask.log",
+        prefix = "nova.mask",
         name = "enabled",
         havingValue = "true",
         matchIfMissing = true
@@ -42,6 +47,12 @@ public class MaskLogAutoConfiguration {
      */
     @Bean
     @ConditionalOnMissingBean(MaskingLogbackLayout.class)
+    @ConditionalOnProperty(
+            prefix = "nova.mask.log",
+            name = "enabled",
+            havingValue = "true",
+            matchIfMissing = true
+    )
     public MaskingLogbackLayout maskingLogbackLayout(
             StrategyRegistry strategyRegistry,
             MaskProperties properties) {

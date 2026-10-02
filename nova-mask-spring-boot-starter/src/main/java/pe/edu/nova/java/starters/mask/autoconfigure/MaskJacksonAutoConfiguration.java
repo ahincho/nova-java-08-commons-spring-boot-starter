@@ -15,6 +15,11 @@ import tools.jackson.databind.module.SimpleModule;
 /**
  * Auto-configuración de la integración con Jackson 3 para enmascaramiento
  * de campos {@code @Masked} durante la serialización JSON.
+ * <p>
+ * El módulo alcanza todo JSON que serializa el servicio, no solo sus respuestas, así que por
+ * defecto enmascara únicamente lo que lleva {@code @Masked} o {@code @MaskedClass}. Enmascarar por
+ * el nombre del campo es opt-in, con {@code nova.mask.infer-by-field-name=true}.
+ * </p>
  *
  * @author Nova Platform
  */

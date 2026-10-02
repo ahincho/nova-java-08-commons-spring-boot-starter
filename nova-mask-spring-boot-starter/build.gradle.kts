@@ -25,6 +25,10 @@ dependencies {
 
     // Test
     testImplementation("org.springframework.boot:spring-boot-starter-test:$springBootVersion")
+    // Las pruebas levantan un servicio Spring Boot con MockMvc y Actuator, como el de un servicio real
+    // que usa el starter.
+    testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test:$springBootVersion")
+    testImplementation("org.springframework.boot:spring-boot-starter-actuator:$springBootVersion")
     testImplementation("org.junit.jupiter:junit-jupiter:6.0.0")
     testImplementation("org.junit.platform:junit-platform-launcher:6.0.0")
 }

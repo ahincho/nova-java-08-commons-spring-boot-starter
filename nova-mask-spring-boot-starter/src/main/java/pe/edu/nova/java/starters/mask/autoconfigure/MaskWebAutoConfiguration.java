@@ -15,12 +15,16 @@ import pe.edu.nova.java.starters.mask.web.MaskResponseBodyAdvice;
  * de controladores {@code @RestController} para habilitar el enmascaramiento
  * automático de campos {@code @Masked} vía Jackson.
  * </p>
+ * <p>
+ * Se apaga con {@code nova.mask.enabled=false}, como todo el starter;
+ * {@code nova.mask.response.enabled=false} apaga solo el advice.
+ * </p>
  *
  * @author Nova Platform
  */
 @AutoConfiguration(after = MaskJacksonAutoConfiguration.class)
 @ConditionalOnProperty(
-        prefix = "nova.mask.response",
+        prefix = "nova.mask",
         name = "enabled",
         havingValue = "true",
         matchIfMissing = true
@@ -39,6 +43,12 @@ public class MaskWebAutoConfiguration {
      */
     @Bean
     @ConditionalOnMissingBean(MaskResponseBodyAdvice.class)
+    @ConditionalOnProperty(
+            prefix = "nova.mask.response",
+            name = "enabled",
+            havingValue = "true",
+            matchIfMissing = true
+    )
     public MaskResponseBodyAdvice maskResponseBodyAdvice() {
         return new MaskResponseBodyAdvice();
     }
